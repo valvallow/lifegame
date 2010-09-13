@@ -6,6 +6,7 @@
 (use util.list) ; slices
 (use gauche.parameter)
 
+
 (define (make-matrix w h . keys)
   (let-optionals* keys ((seed-fun identity))
     (let1 size (* w h)
@@ -118,20 +119,21 @@
          (else key))
        ))))
 
-(define (make-auto-step-lifegame size)
-  (let1 lg (lambda ()
-             (make-lifegame-table (make-random-bit-matrix size size)))
-    (let ((cur (lg))(prev '()))
-      (dlambda
-       (:reset ()
-               (set! cur (lg))
-               cur)
-       (:next ()
-              (set! prev cur)
-              (rlet1 r (next-lifegame-table cur)
-                     (set! cur r)))
-       (:current () cur)
-       (:previouse () prev)))))
+(define (make-auto-step-lifegame w h . args)
+  (let-optionals* args ((matrix (make-random-bit-matrix w h)))
+    (let1 lg (lambda ()
+               (make-lifegame-table matrix))
+      (let ((cur (lg))(prev '()))
+        (dlambda
+         (:reset ()
+                 (set! cur (lg))
+                 cur)
+         (:next ()
+                (set! prev cur)
+                (rlet1 r (next-lifegame-table cur)
+                       (set! cur r)))
+         (:current () cur)
+         (:previouse () prev))))))
 
 (define-record-type state-symbol
   (make-state-symbol live dead) state-symbol?
@@ -172,13 +174,7 @@
                 (print 'restart)
                 (lifegame :reset)))))))
 
-
-;; test
-(define lifegame (make-auto-step-lifegame 10))
-(print-lifegame-table  (lifegame :next))
-
-
-(define erl (endless-repeat-lifegame (make-auto-step-lifegame 30)))
-(erl)
-
+(define (const->auto-step-lifegame bit-matrix)
+  (receive (w h)(matrix-size bit-matrix)
+    (make-auto-step-lifegame  w h bit-matrix)))
 
