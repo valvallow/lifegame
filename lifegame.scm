@@ -105,13 +105,33 @@
                 (make-cell (cell-point cell)(next-cell-live? cell table)))
               table))
 
+(define-syntax dlambda
+  (syntax-rules (else)
+    ((_ (msg1 (darg1 ...) dbody1 ...)(msg2 (darg2 ...) dbody2 ...) ...)
+     (lambda (key . args)
+       (case key
+         ((msg1)(apply (lambda (darg1 ...)
+                        dbody1 ...) args))
+         ((msg2)(apply (lambda (darg2 ...)
+                        dbody2 ...) args))
+         ...
+         (else key))
+       ))))
+
 (define (make-auto-step-lifegame size)
-  (let1 lg (make-lifegame-table (make-random-bit-matrix size size))
-    (let ((cur lg)(prev '()))
-      (lambda ()
-        (set! prev cur)
-        (rlet1 r (next-lifegame-table cur)
-               (set! cur r))))))
+  (let1 lg (lambda ()
+             (make-lifegame-table (make-random-bit-matrix size size)))
+    (let ((cur (lg))(prev '()))
+      (dlambda
+       (:reset ()
+               (set! cur (lg))
+               cur)
+       (:next ()
+              (set! prev cur)
+              (rlet1 r (next-lifegame-table cur)
+                     (set! cur r)))
+       (:current () cur)
+       (:previouse () prev)))))
 
 (define-record-type state-symbol
   (make-state-symbol live dead) state-symbol?
@@ -134,7 +154,31 @@
                             row)))
               table)))
 
+(define (equal-lifegame? lg1 lg2)
+  (let/cc hop
+    (map (lambda (row1 row2)
+           (map (lambda (e1 e2)
+                  (rlet1 r (eq? (cell-live? e1)(cell-live? e2))
+                         (if (not r)
+                             (hop r))))
+                row1 row2)) lg1 lg2)))
+
+(define (endless-repeat-lifegame lifegame . args)
+  (let-optionals* args ((printer print-lifegame-table))
+    (lambda ()
+      (printer
+       (rlet1 r (lifegame :next)
+              (when (equal-lifegame? (lifegame :previouse)(lifegame :current))
+                (print 'restart)
+                (lifegame :reset)))))))
+
 
 ;; test
 (define lifegame (make-auto-step-lifegame 10))
-(print-lifegame-table  (lifegame))
+(print-lifegame-table  (lifegame :next))
+
+
+(define erl (endless-repeat-lifegame (make-auto-step-lifegame 30)))
+(erl)
+
+
