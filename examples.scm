@@ -42,7 +42,6 @@
     (0 0 0 1 1 0)
     (0 0 0 0 0 0)))
 
-
 (define-constant PULSER
   '((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
     (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
@@ -120,7 +119,7 @@
 (define lifegame (make-auto-step-lifegame 10 10))
 (print-lifegame-table  (lifegame :next))
 
-(define erl (endless-repeat-lifegame (make-auto-step-lifegame 30)))
+(define erl (endless-repeat-lifegame (make-auto-step-lifegame 30 30)))
 (erl)
 
 (define bl (endless-repeat-lifegame (const->auto-step-lifegame BLINKER)))
@@ -131,6 +130,28 @@
 
 (define ls (endless-repeat-lifegame (const->auto-step-lifegame LIGHTWEIGHT_SPACESHIP)))
 (ls)
+
+
+(load "./lifegame.scm")
+
+(define-constant PULSER
+  '((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    (0 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 0)
+    (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    (0 0 1 0 0 0 0 1 0 1 0 0 0 0 1 0 0)
+    (0 0 1 0 0 0 0 1 0 1 0 0 0 0 1 0 0)
+    (0 0 1 0 0 0 0 1 0 1 0 0 0 0 1 0 0)
+    (0 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 0)
+    (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    (0 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 0)
+    (0 0 1 0 0 0 0 1 0 1 0 0 0 0 1 0 0)
+    (0 0 1 0 0 0 0 1 0 1 0 0 0 0 1 0 0)
+    (0 0 1 0 0 0 0 1 0 1 0 0 0 0 1 0 0)
+    (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    (0 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 0)
+    (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)))
 
 (define pl (endless-repeat-lifegame (const->auto-step-lifegame PULSER)))
 (pl)
