@@ -7,6 +7,7 @@
 (use gauche.parameter)
 (use liv.matrix) ; *-matrix, matrix-*, cell, point, ...
 (use liv.lists) ; list-repeat
+(use liv.point) ; point
 (use liv.lol.dlambda) ; dlambda
 
 (define (random-bit)
@@ -20,6 +21,34 @@
                            (let1 live? (complement zero?)
                              (make-cell p (live? e))))
                          bit-matrix))
+
+(define-constant relatives
+  `((-1 1)(0 1)(1 1)
+    (-1 0)(1 0)
+    (-1 -1)(0 -1)(1 -1)))
+
+(define-record-type cell
+  (make-cell p value) cell?
+  (p cell-point)
+  (value cell-value))
+
+(define (ref-matrix-with-point matrix p)
+  (ref-matrix matrix (point-x p)(point-y p)))
+
+;; (define (map-matrix-with-point proc matrix)
+;;   (let ((x 0)(y 0))
+;;     (map (lambda (row)
+;;            (set! x 0)
+;;            (rlet1 r (map (lambda (e)
+;;                            (rlet1 r (proc e (make-point x y))
+;;                                   (inc! x)))
+;;                          row)
+;;                   (inc! y)))
+;;          matrix)))
+
+(define (map-matrix-with-point proc matrix)
+  (map-matrix-with-index (lambda (e x y)
+                           (proc e (make-point x y))) matrix))
 
 (define (next-cell-value cell table)
   (let1 cnt-live (count cell-value (neighborhood-cells cell table))
@@ -76,7 +105,7 @@
   (dead state-symbol-dead))
 
 (define-constant DEFAULT_STATE_SYMBOL
-  (make-state-symbol 'Åú 'Åõ))
+  (make-state-symbol '@ 'O))
 
 (define *state-symbol* (make-parameter DEFAULT_STATE_SYMBOL))
 
