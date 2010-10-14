@@ -32,8 +32,8 @@
   (p cell-point)
   (value cell-value))
 
-(define (ref-matrix-with-point matrix p)
-  (ref-matrix matrix (point-x p)(point-y p)))
+(define (matrix-ref-with-point matrix p)
+  (matrix-ref matrix (point-x p)(point-y p)))
 
 ;; (define (map-matrix-with-point proc matrix)
 ;;   (let ((x 0)(y 0))
@@ -73,7 +73,7 @@
 (define (neighborhood-cells cell matrix)
   (let1 np (neighborhood-points cell matrix)
     (map (lambda (p)
-           (ref-matrix-with-point matrix p)) np)))
+           (matrix-ref-with-point matrix p)) np)))
 
 (define (point-xy p)
   (cons (point-x p)(point-y p)))
@@ -105,7 +105,7 @@
   (dead state-symbol-dead))
 
 (define-constant DEFAULT_STATE_SYMBOL
-  (make-state-symbol '@ 'O))
+  (make-state-symbol '@ 0))
 
 (define *state-symbol* (make-parameter DEFAULT_STATE_SYMBOL))
 
