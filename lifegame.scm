@@ -27,6 +27,25 @@
         (<= 2 cnt-live 3)
         (= cnt-live 3))))
 
+(define (point-hold? p matrix)
+  (and (not (negative-point? p))
+       (receive (w h)(matrix-size matrix)
+         (and (< (point-x p) w)
+              (< (point-y p) h)))))
+
+(define (neighborhood-points cell matrix
+                             :optional (relatives relatives))
+  (filter (cut point-hold? <> matrix)
+          (map (lambda (xy p)
+                 (add-point p (make-point (car xy)(cadr xy))))
+               relatives
+               (list-repeat (length relatives)(cell-point cell)))))
+
+(define (neighborhood-cells cell matrix)
+  (let1 np (neighborhood-points cell matrix)
+    (map (lambda (p)
+           (ref-matrix-with-point matrix p)) np)))
+
 (define (point-xy p)
   (cons (point-x p)(point-y p)))
 
@@ -61,16 +80,24 @@
 
 (define *state-symbol* (make-parameter DEFAULT_STATE_SYMBOL))
 
+;; (define (print-lifegame-table table)
+;;   (let1 ss (*state-symbol*)
+;;     (newline)
+;;     (for-each (lambda (row)
+;;                 (print (map (lambda (cell)
+;;                               (if (cell-value cell)
+;;                                   (state-symbol-live ss)
+;;                                   (state-symbol-dead ss)))
+;;                             row)))
+;;               table)))
 (define (print-lifegame-table table)
   (let1 ss (*state-symbol*)
     (newline)
-    (for-each (lambda (row)
-                (print (map (lambda (cell)
+    (print-matrix table :element-fun (lambda (cell)
                               (if (cell-value cell)
                                   (state-symbol-live ss)
-                                  (state-symbol-dead ss)))
-                            row)))
-              table)))
+                                  (state-symbol-dead ss))))))
+
 
 (define (equal-lifegame? lg1 lg2)
   (let/cc hop
