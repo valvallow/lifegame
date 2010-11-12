@@ -2,8 +2,6 @@
 (use srfi-27) ; randam-integer
 (use srfi-43) ; vector-map
 
-(define console-symbol (cons '@  '_))
-
 (define (random-bit)
   (random-integer 2))
 
@@ -125,18 +123,6 @@
                       (<= 2 cnt 3)
                       (= cnt 3)))) life neighborhood))
 
-(define (lifegame-random-life :optional (size 10))
-  (list->vector (map (lambda (e)
-                       (zero? (random-bit)))
-                     (iota (square size)))))
-
-(define (lifegame-print-console life)
-  (let1 width (floor->exact (sqrt (vector-length life)))
-    (vector-for-each (lambda (idx e)
-                        (when (zero? (remainder idx width))
-                          (newline))
-                        (display ((if e car cdr) console-symbol))) life)))
-
 (define (lifegame-stepper :key
                        (life (lifegame-random-life))
                        (printer identity)
@@ -152,15 +138,51 @@
              r
              (values))))))
 
+(define (lifegame-auto-step life :optional(step 20)(sleep 1))
+  (let rec ((step step))
+    (unless (zero? step)
+      (life)
+      (flush)
+      (sys-sleep sleep)
+      (rec (dec step)))))
+
+(define (bit->bool ls)
+  (map (complement zero?) ls))
+
+(define (lifegame-print-console life :optional (sym (cons '@ '_)))
+  (let1 width (floor->exact (sqrt (vector-length life)))
+    (vector-map (lambda (idx e)
+                  (display ((if e car cdr) sym))
+                  (when (zero? (remainder idx width))
+                    (newline))) life)))
+
+;; ------------------------------------------------------------
+;;  test
+;; ------------------------------------------------------------
+
+(define (lifegame-random-life :optional (size 10))
+  (list->vector (map (lambda (e)
+                       (zero? (random-bit)))
+                     (iota (square size)))))
+
 (define lifegame
   (lifegame-stepper
-   :life (lifegame-random-life 30)
-   :printer
-   (lambda (l)
-    (lifegame-print-console l)
-    (newline))))
+   :life (lifegame-random-life 50)
+    :printer
+     (lambda (l)
+       (lifegame-print-console l)
+       (newline))))
 
-(lifegame)
+(lifegame-auto-step lifegame 100)
+
+(define pulser-life (lifegame-stepper
+                     :life (list->vector (bit->bool (apply append PULSER)))
+                      :printer (lambda (l)
+                                 (lifegame-print-console l)
+                                 (newline))))
+
+(lifegame-auto-step pulser-life 30)
+
 
 
 
