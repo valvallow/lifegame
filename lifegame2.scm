@@ -106,13 +106,13 @@
 ;;  test
 ;; ------------------------------------------------------------
 
-(define game (lifegame:random-life 30))
-(lifegame:auto-step game 100
-                    :before (lifegame:make-console-printer)
-                    :after (lambda _ (sys-sleep 1))
-                    :finally (lambda (l)
-                               (set! game l)
-                               (values)))
+;; (define game (lifegame:random-life 30))
+;; (lifegame:auto-step game 100
+;;                     :before (lifegame:make-console-printer)
+;;                     :after (lambda _ (sys-sleep 1))
+;;                     :finally (lambda (l)
+;;                                (set! game l)
+;;                                (values)))
 
 
 
