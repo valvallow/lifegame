@@ -5,115 +5,36 @@
 (define (random-bit)
   (random-integer 2))
 
-(define-syntax define-same-params
-  (syntax-rules ()
-    ((_ (params ...)(name body ...))
-     (define (name params ...)
-       body ...))
-    ((_ (params ...)(name body ...) x ...)
-     (begin
-       (define-same-params (params ...)(name body ...))
-       (define-same-params (params ...) x ...)
-       (undefined)))))
+(define (index->xy idx len)
+  (receive (y x)(quotient&remainder idx len)
+    (values x y)))
 
-(define-same-params (idx square-width)
-  (edge-top? (<= idx (dec square-width)))
-  (edge-bottom? (<= (- (square square-width) square-width) idx))
-  (edge-left? (zero? (remainder idx square-width)))
-  (edge-right?  (= (remainder idx square-width)(dec square-width)))
-  (corner-top-left? (zero? idx))
-  (corner-top-right? (=  (dec square-width) idx))
-  (corner-bottom-left? (= (- (square square-width) square-width) idx))
-  (corner-bottom-right? (= (dec (square square-width)) idx)))
+(define *relatives*
+  '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0)
+    (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
 
-(define (neighborhood-indices square-width)
-  (let* ((square-size (square square-width))
-         (v (make-vector square-size))
-         (row-max (dec square-width))
-         (square-max (dec square-size)))
-    (vector-map
-     (lambda (idx e)
-       (cond ((corner-top-left? idx square-width) ; idx -> (x y) -> (0 0)
-              (list square-max ; (-1 -1)
-                    (- square-max row-max) ; (0 -1)
-                    (inc (- square-max row-max)) ; (1 -1)
-                    row-max ; (-1 0)
-                    (inc idx) ; (1 0)
-                    (inc (+ row-max row-max)) ; (-1 -1)
-                    (inc row-max) ; (-1 0)
-                    (inc (inc row-max))))
-             ((corner-top-right? idx square-width)
-              (list (dec (dec square-size))
-                    square-max
-                    (- (dec square-size) idx)
-                    (dec idx)
-                    0
-                    (+ idx idx)
-                    (+ idx (inc idx))
-                    (inc idx)))
-             ((corner-bottom-left? idx square-width)
-              (list (dec idx)
-                    (- idx square-width)
-                    (- idx row-max)
-                    square-max
-                    (inc idx)
-                    row-max
-                    0
-                    1))
-             ((corner-bottom-right? idx square-width)
-              (list (dec (- idx square-width))
-                    (- idx square-width)
-                    (- idx square-width row-max)
-                    (dec idx)
-                    (- idx row-max)
-                    (dec row-max)
-                    row-max
-                    0))
-             ((edge-top? idx square-width)
-              (list (- square-size (- square-width idx))
-                    (dec (- square-size (- square-width idx)))
-                    (inc (- square-size (- square-width idx)))
-                    (dec idx)
-                    (inc idx)
-                    (+ idx row-max)
-                    (inc (+ idx row-max))
-                    (inc (inc (+ idx row-max)))))
-             ((edge-bottom? idx square-width)
-              (list (dec (- idx square-width))
-                    (- idx square-width)
-                    (- idx row-max)
-                    (dec idx)
-                    (inc idx)
-                    (dec (- row-max (- square-max idx)))
-                    (- row-max (- square-max idx))
-                    (inc (- row-max (- square-max idx)))))
-             ((edge-left? idx square-width)
-              (list (dec idx)
-                    (- idx square-width)
-                    (- idx row-max)
-                    (+ idx row-max)
-                    (inc idx)
-                    (+ idx row-max square-width)
-                    (+ idx square-width)
-                    (inc (+ idx square-width))))
-             ((edge-right? idx square-width)
-              (list (dec (- idx square-width))
-                    (- idx square-width)
-                    (- idx square-width row-max)
-                    (dec idx)
-                    (- idx row-max)
-                    (+ idx row-max)
-                    (+ idx square-width)
-                    (inc idx)))
-             (else (list (dec (- idx square-width))
-                        (- idx square-width)
-                        (inc (- idx square-width))
-                        (dec idx)
-                        (inc idx)
-                        (dec (+ idx square-width))
-                        (+ idx square-width)
-                        (inc (+ idx square-width))))))
-      v)))
+(define (neighborhood-relative-xy idx len
+                                  :optional (relatives *relatives*))
+  (receive (x y)(index->xy idx len)
+    (map (lambda (r)
+           (let ((rx (+ x (car r)))(ry (+ y (cdr r)))
+                 (f (lambda (x)
+                      (remainder (+ x len) len))))
+             (cons (f rx)(f ry))))
+         relatives)))
+
+(define (neighborhood-relative-indices idx len)
+  (let1 rel (neighborhood-relative-xy idx len)
+    (map (lambda (r)
+           (let ((rx (car r))(ry (cdr r)))
+             (+ rx (* ry len))))
+         rel)))
+
+(define (neighborhood-indices len)
+  (rlet1 vect (make-vector (square len))
+         (vector-map! (lambda (idx v)
+                        (neighborhood-relative-indices idx len))
+                      vect)))
 
 (define (lifegame-next-step life neighborhood)
   (vector-map (lambda (idx e nh)
@@ -151,10 +72,12 @@
 
 (define (lifegame-print-console life :optional (sym (cons '@ '_)))
   (let1 width (floor->exact (sqrt (vector-length life)))
+    (newline)
     (vector-map (lambda (idx e)
                   (display ((if e car cdr) sym))
                   (when (zero? (remainder idx width))
-                    (newline))) life)))
+                    (newline)))
+                life)))
 
 ;; ------------------------------------------------------------
 ;;  test
@@ -167,22 +90,11 @@
 
 (define lifegame
   (lifegame-stepper
-   :life (lifegame-random-life 50)
+   :life (lifegame-random-life 30)
     :printer
      (lambda (l)
        (lifegame-print-console l)
        (newline))))
 
-(lifegame-auto-step lifegame 100)
-
-(define pulser-life (lifegame-stepper
-                     :life (list->vector (bit->bool (apply append PULSER)))
-                      :printer (lambda (l)
-                                 (lifegame-print-console l)
-                                 (newline))))
-
-(lifegame-auto-step pulser-life 30)
-
-
-
+(lifegame-auto-step lifegame 50)
 
