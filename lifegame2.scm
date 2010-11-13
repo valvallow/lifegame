@@ -2,99 +2,111 @@
 (use srfi-27) ; randam-integer
 (use srfi-43) ; vector-map
 
+(define *relatives*
+  '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0) ;; (0 . 0)
+    (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
+
 (define (random-bit)
   (random-integer 2))
 
-(define (index->xy idx len)
-  (receive (y x)(quotient&remainder idx len)
+(define (bit->bool bit)
+  ((complement zero?) bit))
+
+(define (square-edge square)
+  (floor->exact (sqrt (vector-length square))))
+
+(define (index->xy idx edge)
+  (receive (y x)(quotient&remainder idx edge)
     (values x y)))
 
-(define *relatives*
-  '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0)
-    (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
+(define (xy->index x y edge)
+  (+ x (* y edge)))
 
-(define (neighbor-relative-xy idx len
+(define (sphere n edge)
+  (remainder (+ n edge) edge))
+
+(define (neighbor-relative-xy idx edge
                                   :optional (relatives *relatives*))
-  (receive (x y)(index->xy idx len)
+  (receive (x y)(index->xy idx edge)
     (map (lambda (r)
-           (let ((rx (+ x (car r)))(ry (+ y (cdr r)))
-                 (f (lambda (x)
-                      (remainder (+ x len) len))))
-             (cons (f rx)(f ry))))
+           (let ((rx (+ x (car r)))
+                 (ry (+ y (cdr r))))
+             (cons (sphere rx edge)
+                   (sphere ry edge))))
          relatives)))
 
-(define (neighbor-relative-indices idx len)
-  (let1 rel (neighbor-relative-xy idx len)
+(define (neighbor-relative-indices idx edge)
+  (let1 rel (neighbor-relative-xy idx edge)
     (map (lambda (r)
-           (let ((rx (car r))(ry (cdr r)))
-             (+ rx (* ry len))))
+           (xy->index (car r)(cdr r) edge))
          rel)))
 
-(define (neighbor-indices len)
-  (rlet1 vect (make-vector (square len))
+(define (make-neighbor-indices edge)
+  (rlet1 vect (make-vector (square edge))
          (vector-map! (lambda (idx v)
-                        (neighbor-relative-indices idx len))
+                        (neighbor-relative-indices idx edge))
                       vect)))
 
-(define (lifegame-next-step life neighbor)
-  (vector-map (lambda (idx e nh)
-                (let1 cnt (count identity (map (lambda (e)
-                                                 (vector-ref life e)) nh))
-                  (if e
-                      (<= 2 cnt 3)
-                      (= cnt 3)))) life neighbor))
+;; ------------------------------------------------------------
+;;  lifegame
+;; ------------------------------------------------------------
 
-(define (lifegame-stepper :key
-                       (life (lifegame-random-life))
-                       (printer identity)
-                       (return #f))
-  (let* ((width (floor->exact (sqrt (vector-length life))))
-         (nh (neighbor-indices width))
-         (life life))
+(define (lifegame:neighbor lifegame neighbor)
+  (map (pa$ vector-ref lifegame) neighbor))
+
+(define (lifegame:random-life edge)
+  (list->vector (map (lambda (e)
+                       (bit->bool (random-bit)))
+                     (iota (square edge)))))
+
+(define (lifegame:live? life neighbor-life)
+  (let1 cnt (count identity neighbor-life)
+    (if life
+        (<= 2 cnt 3)
+        (= cnt 3))))
+
+(define (lifegame:next-step lifegame neighbor)
+  (vector-map (lambda (_ e nh)
+                (lifegame:live? e (lifegame:neighbor lifegame nh)))
+              lifegame neighbor))
+
+(define (lifegame:make-stepper lifegame)
+  (let* ((edge (square-edge lifegame))
+         (nh (make-neighbor-indices edge)))
     (lambda _
-       (let1 r (lifegame-next-step life nh)
-         (printer r)
-         (set! life r)
-         (if return
-             r
-             (values))))))
+      (rlet1 r (lifegame:next-step lifegame nh)
+             (set! lifegame r)))))
 
-(define (lifegame-auto-step life :optional(step 20)(sleep 1))
-  (let rec ((step step))
-    (unless (zero? step)
-      (life)
-      (flush)
-      (sys-sleep sleep)
-      (rec (dec step)))))
+(define (lifegame:auto-step lifegame step :key
+                            (before identity)(after identity))
+  (let1 next (lifegame:make-stepper lifegame)
+    (let rec ((l lifegame)(step step))
+      (unless (zero? step)
+        (before l)
+        (let1 r (next)
+          (after r)
+          (rec r (dec step)))))))
 
-(define (bit->bool ls)
-  (map (complement zero?) ls))
+(define (lifegame:make-console-printer :optional (sym (cons '@ '_)))
+  (lambda (lifegame)
+    (let1 edge (square-edge lifegame)
+      (vector-for-each (lambda (idx e)
+                         (when (zero? (remainder idx edge))
+                           (newline))
+                         (display ((if e car cdr) sym)))
+                       lifegame)
+      (newline)
+      (flush))))
 
-(define (lifegame-print-console life :optional (sym (cons '@ '_)))
-  (let1 width (floor->exact (sqrt (vector-length life)))
-    (newline)
-    (vector-map (lambda (idx e)
-                  (display ((if e car cdr) sym))
-                  (when (zero? (remainder idx width))
-                    (newline)))
-                life)))
 
 ;; ------------------------------------------------------------
 ;;  test
 ;; ------------------------------------------------------------
 
-(define (lifegame-random-life :optional (size 10))
-  (list->vector (map (lambda (e)
-                       (zero? (random-bit)))
-                     (iota (square size)))))
+(define game (lifegame:random-life 30))
+(lifegame:auto-step game 30
+                    :before (lifegame:make-console-printer)
+                    :after (lambda _ (sys-sleep 1)))
 
-(define lifegame
-  (lifegame-stepper
-   :life (lifegame-random-life 25)
-    :printer
-     (lambda (l)
-       (lifegame-print-console l)
-       (newline))))
 
-(lifegame-auto-step lifegame 30)
 
