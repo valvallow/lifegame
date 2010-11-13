@@ -13,7 +13,7 @@
   '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0)
     (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
 
-(define (neighborhood-relative-xy idx len
+(define (neighbor-relative-xy idx len
                                   :optional (relatives *relatives*))
   (receive (x y)(index->xy idx len)
     (map (lambda (r)
@@ -23,33 +23,33 @@
              (cons (f rx)(f ry))))
          relatives)))
 
-(define (neighborhood-relative-indices idx len)
-  (let1 rel (neighborhood-relative-xy idx len)
+(define (neighbor-relative-indices idx len)
+  (let1 rel (neighbor-relative-xy idx len)
     (map (lambda (r)
            (let ((rx (car r))(ry (cdr r)))
              (+ rx (* ry len))))
          rel)))
 
-(define (neighborhood-indices len)
+(define (neighbor-indices len)
   (rlet1 vect (make-vector (square len))
          (vector-map! (lambda (idx v)
-                        (neighborhood-relative-indices idx len))
+                        (neighbor-relative-indices idx len))
                       vect)))
 
-(define (lifegame-next-step life neighborhood)
+(define (lifegame-next-step life neighbor)
   (vector-map (lambda (idx e nh)
                 (let1 cnt (count identity (map (lambda (e)
                                                  (vector-ref life e)) nh))
                   (if e
                       (<= 2 cnt 3)
-                      (= cnt 3)))) life neighborhood))
+                      (= cnt 3)))) life neighbor))
 
 (define (lifegame-stepper :key
                        (life (lifegame-random-life))
                        (printer identity)
                        (return #f))
   (let* ((width (floor->exact (sqrt (vector-length life))))
-         (nh (neighborhood-indices width))
+         (nh (neighbor-indices width))
          (life life))
     (lambda _
        (let1 r (lifegame-next-step life nh)
@@ -90,11 +90,11 @@
 
 (define lifegame
   (lifegame-stepper
-   :life (lifegame-random-life 30)
+   :life (lifegame-random-life 25)
     :printer
      (lambda (l)
        (lifegame-print-console l)
        (newline))))
 
-(lifegame-auto-step lifegame 50)
+(lifegame-auto-step lifegame 30)
 
