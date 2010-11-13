@@ -78,14 +78,17 @@
              (set! lifegame r)))))
 
 (define (lifegame:auto-step lifegame step :key
-                            (before identity)(after identity))
+                            (before identity)(after identity)
+                            (finally identity))
   (let1 next (lifegame:make-stepper lifegame)
     (let rec ((l lifegame)(step step))
-      (unless (zero? step)
-        (before l)
-        (let1 r (next)
-          (after r)
-          (rec r (dec step)))))))
+      (if (zero? step)
+          (finally l)
+          (begin
+            (before l)
+            (let1 r (next)
+              (after r)
+              (rec r (dec step))))))))
 
 (define (lifegame:make-console-printer :optional (sym (cons '@ '_)))
   (lambda (lifegame)
@@ -104,9 +107,12 @@
 ;; ------------------------------------------------------------
 
 (define game (lifegame:random-life 30))
-(lifegame:auto-step game 30
+(lifegame:auto-step game 100
                     :before (lifegame:make-console-printer)
-                    :after (lambda _ (sys-sleep 1)))
+                    :after (lambda _ (sys-sleep 1))
+                    :finally (lambda (l)
+                               (set! game l)
+                               (values)))
 
 
 
