@@ -1,10 +1,11 @@
-;; (use srfi-1) ; iota
-;; (use srfi-27) ; randam-integer
-;; (use srfi-43) ; vector-map
-
 (define *relatives*
   '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0) ;; (0 . 0)
     (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
+
+(define (call-with-output-string proc)
+  (let ((out (open-output-string)))
+    (proc out)
+    (get-output-string out)))
 
 (define (dec n)
   (- n 1))
@@ -113,44 +114,51 @@
   (let1 next (lifegame:make-stepper lifegame relatives)
     (let rec ((l lifegame)(step step))
       (if (zero? step)
-          (finally l)
+          (finally l step)
           (begin
-            (before l)
+            (before l step)
             (let1 r (next)
-              (after r)
+              (after r step)
               (rec r (dec step))))))))
 
-(define sym (cons '@ '_))
-
-(define (lifegame:make-console-printer sym display)
-  (lambda (lifegame)
-    (let ((edge (square-edge lifegame))
-          (idx 0))
-      (vector-for-each (lambda (e)
-                         (when (zero? (mod idx edge))
-                           (newline))
-                         (display ((if e car cdr) sym))
-                         (set! idx (+ idx 1)))
-                       lifegame)
-      (newline))))
-
+(define (lifegame:make-web-printer sym finally)
+  (let1 newline (lambda (out)
+                  (display "<br />" out))
+    (lambda (lifegame step)
+      (let ((edge (square-edge lifegame))
+            (idx 0))
+        (let1 s (call-with-output-string
+                  (lambda (out)
+                    (display step out)
+                    (newline out)
+                    (vector-for-each (lambda (e)
+                                       (when (zero? (mod idx edge))
+                                         (newline out))
+                                       (display ((if e car cdr) sym) out)
+                                       (set! idx (+ idx 1)))
+                                     lifegame)
+                    (newline out)))
+          (finally s))))))
 
 ;; ------------------------------------------------------------
 ;;  test
 ;; ------------------------------------------------------------
 
-(define game (lifegame:random-life 10))
+(define (start-lifegame . args)
+  (let ((live (string->symbol (get-content ($ "live"))))
+        (dead (string->symbol (get-content ($ "dead"))))
+        (step (string->number (get-content ($ "step"))))
+        (interval (string->number (get-content ($ "interval"))))
+        (size (string->number (get-content ($ "size"))))
+        (console ($ "lifegame-console")))
+  (let ((game (lifegame:random-life size))
+        (printer (lifegame:make-web-printer
+                  (cons live dead)
+                  (lambda (val)
+                    (element-update! console val)))))
+    (lifegame:auto-step game *relatives* step printer
+                        (lambda _ (sleep interval))
+                        (lambda (l s)
+                          (set! game l))))))
 
-;; (define printer (lifegame:make-console-printer (cons '@ '_) display))
-
-(define printer (lifegame:make-console-printer
-                 (cons '@ '_)
-                 (lambda (val)
-                   (element-update! ($ "lifegame-console") val))))
-
-(define (start-lifegame)
-  (lifegame:auto-step game *relatives* 10 printer
-                      (lambda _ (sleep 1))
-                      (lambda (l)
-                        (set! game l))))
-
+(add-handler! ($ "start") "click" start-lifegame)
