@@ -140,14 +140,17 @@
 ;; ------------------------------------------------------------
 
 (define game (lifegame:random-life 10))
-(define printer (lifegame:make-console-printer (cons '@ '_) display))
-(define stepper (lifegame:make-stepper game *relatives*))
 
-(lifegame:auto-step game *relatives* 10
-                    (lifegame:make-console-printer
-                     sym
-                     display)
-                    (lambda _ (sleep 1))
-                    (lambda (l)
-                      (set! game l)))
+;; (define printer (lifegame:make-console-printer (cons '@ '_) display))
+
+(define printer (lifegame:make-console-printer
+                 (cons '@ '_)
+                 (lambda (val)
+                   (element-update! ($ "lifegame-console") val))))
+
+(define (start-lifegame)
+  (lifegame:auto-step game *relatives* 10 printer
+                      (lambda _ (sleep 1))
+                      (lambda (l)
+                        (set! game l))))
 
