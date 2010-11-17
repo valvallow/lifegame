@@ -145,8 +145,8 @@
 ;; ------------------------------------------------------------
 
 (define (start-lifegame . args)
-  (let ((live (string->symbol (get-content ($ "live"))))
-        (dead (string->symbol (get-content ($ "dead"))))
+  (let ((live "<img border=\"0\" height=\"15\" src=\"https://sites.google.com/site/valloooooooooow/lisplogo_alien_128.png\" width=\"25\" />")
+        (dead "<img border=\"0\" height=\"15\" src=\"\" width=\"25\" />")
         (step (string->number (get-content ($ "step"))))
         (interval (string->number (get-content ($ "interval"))))
         (size (string->number (get-content ($ "size"))))

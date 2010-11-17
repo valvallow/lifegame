@@ -8,8 +8,6 @@
                description="lifegame written in BiwaScheme"/>
   <Content type="html">
     <![CDATA[
-             <div>live symbol<input type="text" size=2 id="live" value="0" /></div>
-             <div>dead symbol<input type="text" size=2 id="dead" value="_"></div>
              <div>step<input type="text" size=3 id="step" value="10"></div>
              <div>interval<input type="text" size=2 id="interval" value="1"></div>
              <div>size<input type="text" size=3 id="size" value="15"></div>
@@ -166,8 +164,8 @@
 ;; ------------------------------------------------------------
 
 (define (start-lifegame . args)
-  (let ((live (string->symbol (get-content ($ "live"))))
-        (dead (string->symbol (get-content ($ "dead"))))
+  (let ((live "<img border=\"0\" height=\"15\" src=\"https://sites.google.com/site/valloooooooooow/lisplogo_alien_128.png\" width=\"25\" />")
+        (dead "<img border=\"0\" height=\"15\" src=\"\" width=\"25\" />")
         (step (string->number (get-content ($ "step"))))
         (interval (string->number (get-content ($ "interval"))))
         (size (string->number (get-content ($ "size"))))
@@ -179,8 +177,8 @@
                     (element-update! console val)))))
     (lifegame:auto-step game *relatives* step printer
                         (lambda _ (sleep interval))
-                        printer))))
-
+                        (lambda (l s)
+                          (set! game l))))))
 (add-handler! ($ "start") "click" start-lifegame)
              </script>
     ]]>
