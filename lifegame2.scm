@@ -132,7 +132,7 @@
        (generation "g|generation=i" -1)
        (live "l|live=s")
        (dead "d|dead=s")
-       (file "f|file=s")
+       (file "f|file=s"))
     (let1 game (if file
                    (lifegame:random-life width) ; TODO : read from file
                    (lifegame:random-life width))
