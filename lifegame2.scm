@@ -1,10 +1,20 @@
+#!/usr/local/bin/gosh
+
 (use srfi-1) ; iota
 (use srfi-27) ; randam-integer
 (use srfi-43) ; vector-map
+(use gauche.parseopt)
+(use gauche.process)
 
 (define *relatives*
   '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0) ;; (0 . 0)
     (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
+
+(define (square x)
+  (* x x))
+
+(define (dec n)
+  (- n 1))
 
 (define (random-bit)
   (random-integer 2))
@@ -77,7 +87,8 @@
       (rlet1 r (lifegame:next-step lifegame nh)
              (set! lifegame r)))))
 
-(define (lifegame:auto-step lifegame step :key
+(define (lifegame:auto-step lifegame :key
+                            (step -1)
                             (before identity)(after identity)
                             (finally identity))
   (let1 next (lifegame:make-stepper lifegame)
@@ -102,17 +113,40 @@
       (flush))))
 
 
-;; ------------------------------------------------------------
-;;  test
-;; ------------------------------------------------------------
+;; ;; ------------------------------------------------------------
+;; ;;  test
+;; ;; ------------------------------------------------------------
 
-(define game (lifegame:random-life 30))
-(lifegame:auto-step game 10
-                    :before (lifegame:make-console-printer)
-                    :after (lambda _ (sys-sleep 1))
-                    :finally (lambda (l)
-                               (set! game l)
-                               (values)))
+;; (define game (lifegame:random-life 30))
+;; (lifegame:auto-step game
+;;                     :before (lifegame:make-console-printer)
+;;                     :after (lambda _ (sys-sleep 1))
+;;                     :finally (lambda (l)
+;;                                (set! game l)
+;;                                (values)))
 
-
-
+(define (main args)
+  (let-args (cdr args)
+      ((width "w|width=i" 10)
+       (sleep "s|sleep=i" 300)
+       (generation "g|generation=i" -1)
+       (live "l|live=s")
+       (dead "d|dead=s")
+       (file "f|file=s")
+    (let1 game (if file
+                   (lifegame:random-life width) ; TODO : read from file
+                   (lifegame:random-life width))
+      (dynamic-wind
+        (^ _ (run-process '(tput "civis"))
+           (run-process '(tput "clear")))
+        (^ _ (lifegame:auto-step
+              game
+              :step generation
+              :before (if (and live dead)
+                          (lifegame:make-console-printer (cons live dead))
+                          (lifegame:make-console-printer))
+              :after (^ _ (run-process '(tput "cup" 0 0))
+                        (sys-nanosleep (* sleep 1000000)))
+              :finally (^l (set! game l)
+                           (values))))
+        (^ _ (run-process '(tput "cnorm")))))))
