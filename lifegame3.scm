@@ -30,17 +30,6 @@
 (define (sleep-milliseconds n)
   (sys-nanosleep (* n 1000000)))
 
-
-;; list-refのsetter
-(define (list-set! ls n obj)
-  (let/cc hop
-    (let rec ((l ls)(n n))
-      (if (zero? n)
-          (begin (set! (car l) obj)
-                 (hop ls))
-          (rec (cdr l)(- n 1))))))
-(set! (setter list-ref) list-set!)
-
 ;; 生きているcellのインデックスを集める
 (define (filter-alive world :optional (alive? (complement zero?)))
   (filter-map (^(cell index)
@@ -78,10 +67,10 @@
       '((-1 . 1)(0 . 1)(1 . 1)(-1 . 0)
         (1 . 0)(-1 . -1)(0 . -1)(1 . -1)))
     (let1 base-point (index->point index cols)
-        (map (^r (let1 rp (add-point base-point r)
-                   (make-point (replace-edge-point (point-x rp) cols)
-                               (replace-edge-point (point-y rp) lines))))
-             relative-locations)))
+      (map (^r (let1 rp (add-point base-point r)
+                 (make-point (replace-edge-point (point-x rp) cols)
+                             (replace-edge-point (point-y rp) lines))))
+           relative-locations)))
   (map (^n (point->index (point-x n)(point-y n) cols))
        (neighbor-locations index  cols lines)))
 
@@ -95,6 +84,7 @@
        (list +BIRTH+ +NEIGHBOR-ALLIVE-2+ +NEIGHBOR-ALLIVE-3+)))
 
 (define (print-world world cols)
+  (print)
   (for-each print (map list->string
                        (slices (map (^(cell)
                                       (if (alive? cell)
@@ -139,7 +129,7 @@
     (receive (world cols lines)
         (if (null? rest)
             (let ((cols (if fullscreen? (x->integer (get-tput-val 'cols)) cols))
-                  (lines (if fullscreen? (x->integer (get-tput-val 'lines)) lines)))
+                  (lines (if fullscreen? (- (x->integer (get-tput-val 'lines)) 2) lines)))
               (values (create-random-life-world (* cols lines)) cols lines))
             (file->world (car rest)))
       (let ((alives (filter-alive world)))
