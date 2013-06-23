@@ -11,10 +11,6 @@
 ;; initialize random-integer
 (random-source-randomize! default-random-source)
 
-
-;;
-;; util
-;;
 (define (get-tput-val . args)
   (process-output->string `(tput ,@args)))
 
@@ -33,9 +29,8 @@
 (define (sleep-milliseconds n)
   (sys-nanosleep (* n 1000000)))
 
-(define (random-bit)
-  (random-integer 2))
 
+;; list-refのsetter
 (define (list-set! ls n obj)
   (let/cc hop
     (let rec ((l ls)(n n))
@@ -53,7 +48,7 @@
               (iota (length world))))
 
 (define (create-random-life-world world-size)
-  (list-tabulate world-size (^ _ (random-bit))))
+  (list-tabulate world-size (^ _ (random-integer 2))))
 
 (define (create-empty-world world-size)
   (list-tabulate world-size (^ _ 0)))
@@ -158,6 +153,6 @@
                     (set! (~ world alive)(+ (~ world alive) +LIFE+)))
                   (print-world world cols)
                   (if enter2step?
-                      (read-line)
-                      (sleep-milliseconds sleep))
+                      (read-line))
+                  (sleep-milliseconds sleep)
                   (rec (filter-alive world alive?))))))))))
