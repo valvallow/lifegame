@@ -4,6 +4,7 @@
 (use gauche.process)
 (use srfi-1)
 (use srfi-27)
+(use srfi-43)
 
 ;; Exit the game by pressing the C-c
 (set-signal-handler! SIGINT (^ _ (exit)))
@@ -145,14 +146,14 @@
         (with-full-screen
          (^ _ (let rec ((alives alives))
                 (return-to-top)
-                (let1 world (create-empty-world (* cols lines))
+                (let1 world (list->vector (create-empty-world (* cols lines)))
                   (dolist (alive alives)
-                    (for-each (^(neighbor)
-                                (inc! (list-ref world neighbor)))
-                              (neighbor-indices alive cols lines))
-                    (set! (~ world alive)(+ (~ world alive) +LIFE+)))
-                  (print-world world cols)
+                    (vector-for-each (^(i neighbor)
+                                       (inc! (vector-ref world neighbor)))
+                                     (list->vector (neighbor-indices alive cols lines)))
+                    (set! (vector-ref world alive)(+ (vector-ref world alive) +LIFE+)))
+                  (print-world (vector->list world) cols)
                   (if enter2step?
                       (read-line))
                   (sleep-milliseconds sleep)
-                  (rec (filter-alive world alive?))))))))))
+                  (rec (filter-alive (vector->list world) alive?))))))))))
